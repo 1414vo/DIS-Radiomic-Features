@@ -68,14 +68,42 @@ def manual_anova(data, factors, factor_names):
 
                 explained_sse[int_order][comb] = cell_factor_sse - ss_to_remove
 
+    return get_interaction_series(factor_names, explained_sse, sse)
+
+
+def get_interaction_series(factor_names, explained_sse, total_sse):
+    """
+    Produces a Pandas Series from the extracted Sum of Squared Errors (SSE) showing the factor sensitivity.
+    Sensitivity is measured as the fraction explained compared to the total SSE.
+
+    Parameters
+    ----------
+    factor_names: list[str]
+        The names of the factors - used to construct a final Pandas Series
+    explained_sse: dict[int, dict[int, float]]
+        The calculated Explained SSE for each combination of factors.
+    total_sse: float
+        The total Sum of Squared Errors.
+
+    Returns
+    -------
+    A Pandas Series (pd.Series) object, containing the contribution of each interaction in terms
+    of sensitivity.
+    """
     interaction_dict = {}
-    for int_order in range(1, num_factors + 1):
-        comb_list = list(combinations(range(num_factors), int_order))
+
+    for int_order in range(1, len(factor_names) + 1):
+        # Genarete the combinations and the corresponding names of the factors
+        comb_list = list(combinations(range(len(factor_names)), int_order))
         comb_name_list = list(combinations(factor_names, int_order))
+
         for i, comb in enumerate(comb_list):
+            # Compute the fraction of explained SSE
             interaction_dict[str(comb_name_list[i])] = (
-                explained_sse[int_order][comb] / sse
+                explained_sse[int_order][comb] / total_sse
             )
+
+            # Limit every small contribution to 0 for numerical precision
             if abs(interaction_dict[str(comb_name_list[i])]) < 1e-10:
                 interaction_dict[str(comb_name_list[i])] = 0
     return pd.Series(interaction_dict)
