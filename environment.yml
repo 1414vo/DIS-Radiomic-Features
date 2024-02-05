@@ -9,7 +9,6 @@ dependencies:
   - wheel
   - conda-content-trust
   - conda-libmamba-solver
-  - doxygen
   - matplotlib
   - numpy
   - pandas
