@@ -31,7 +31,7 @@ def get_feature_groups(feature_names):
     return feature_groups
 
 
-def get_colors(n_colors, colorblind_friendly=False):
+def generate_colors(n_colors, colorblind_friendly=False):
     """Generates a number of distinct colors to be used for plotting.
 
     Parameters
