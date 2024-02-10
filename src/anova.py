@@ -34,6 +34,8 @@ def manual_anova(data, factors, factor_names):
 
     data_mean = np.mean(data)
     sse = sum((data - data_mean) ** 2)
+
+    # Create matrix of factor categorization
     unique_indeces = np.zeros((num_measurements, num_factors))
     for i in range(num_factors):
         _, unique_indeces[:, i] = np.unique(factors[i], return_inverse=True)
@@ -43,10 +45,12 @@ def manual_anova(data, factors, factor_names):
 
     for int_order in range(1, num_factors + 1):
         explained_sse[int_order] = {}
+        # Generate combinations of the given interaction order
         comb_list = list(combinations(range(num_factors), int_order))
 
         for i, comb in enumerate(comb_list):
             int_factor_ind = unique_indeces[:, comb]
+            # Represent combination index as a single unique index
             comb_indeces = np.sum(
                 int_factor_ind * max_classes ** np.arange(len(comb)), axis=1
             )
@@ -55,20 +59,41 @@ def manual_anova(data, factors, factor_names):
             means = np.array([])
             for comb_idx in unique_combs:
                 means = np.append(means, np.mean(data[comb_indeces == comb_idx]))
-            cell_factor_sse = scaling * sum((means - data_mean) ** 2)
-            # Simply deal with 1st order interactions
-            if int_order == 1:
-                explained_sse[int_order][comb] = cell_factor_sse
-            else:
-                ss_to_remove = 0
-                for j in range(1, int_order):
-                    for lower_order_comb in explained_sse[j]:
-                        if set(lower_order_comb) <= set(comb):
-                            ss_to_remove += explained_sse[j][lower_order_comb]
 
-                explained_sse[int_order][comb] = cell_factor_sse - ss_to_remove
+            # Compute the total sse contribution (without removing lower-level interactions)
+            comb_sse = scaling * sum((means - data_mean) ** 2)
+            register_factor_interaction_contribution(explained_sse, comb, comb_sse)
 
     return get_interaction_series(factor_names, explained_sse, sse)
+
+
+def register_factor_interaction_contribution(explained_sse, comb, comb_sse):
+    """
+    Compute the sensitivity for a combination of factors given pre-computed SSE contributions.
+    Updates the provided explained_sse dictionary in place.
+
+    Parameters
+    ----------
+    explained_sse: dict[int, dict[int, float]]
+        The calculated Explained SSE for each combination of factors.
+    comb: list[int]
+        The combination of factors.
+    comb_sse: float
+        The computed SSE for the given combination.
+    """
+    # First order interactions have no dependencies of lower order.
+    if len(comb) == 1:
+        explained_sse[len(comb)][comb] = comb_sse
+    else:
+        ss_to_remove = 0
+        # Iterate over combinations
+        for j in range(1, len(comb)):
+            for lower_order_comb in explained_sse[j]:
+                # If combination is subset of the given one, remove the contribution
+                if set(lower_order_comb) <= set(comb):
+                    ss_to_remove += explained_sse[j][lower_order_comb]
+
+        explained_sse[len(comb)][comb] = comb_sse - ss_to_remove
 
 
 def get_interaction_series(factor_names, explained_sse, total_sse):
