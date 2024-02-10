@@ -1,7 +1,7 @@
 import colorsys
 import numpy as np
 import pandas as pd
-from itertools import partial
+from functools import partial
 
 
 def get_feature_groups(feature_names):
@@ -22,7 +22,7 @@ def get_feature_groups(feature_names):
     for feature in feature_names:
         feature_split = feature.split("_")
         # Capitalize group name
-        group_name = feature_split[1].capitalize()
+        group_name = feature_split[1].upper()
 
         if group_name not in feature_groups:
             feature_groups[group_name] = []
