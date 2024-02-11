@@ -3,7 +3,7 @@ import numpy as np
 from .utils import get_feature_groups, generate_colors
 
 
-def plot_interaction_summary(interaction_summary, output_path=None):
+def plot_interaction_summary(interaction_summary, output_path=None, title=None):
     """
     Creates a bar chart of the sensitivity analysis.
 
@@ -41,6 +41,8 @@ def plot_interaction_summary(interaction_summary, output_path=None):
     plt.legend()
     plt.xticks([])
     plt.ylabel(r"Factor Sensitivity ($\eta^2$)")
+    if title is not None:
+        plt.title(title)
 
     # Save or show dependent on the output path
     if output_path is None:
