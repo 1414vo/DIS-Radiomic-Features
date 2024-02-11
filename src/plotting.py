@@ -1,11 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from .utils import get_feature_groups, generate_colors
 
 
 def plot_interaction_summary(
-    interaction_summary, output_path=None, title=None, colors=None
-):
+    interaction_summary: pd.DataFrame,
+    output_path: str = None,
+    title: str = None,
+    colors=None,
+) -> None:
     """
     Creates a bar chart of the sensitivity analysis.
 

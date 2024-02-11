@@ -6,7 +6,17 @@ import pandas as pd
 import argparse
 
 
-def sensitivity_summary(col_means, col_stds):
+def sensitivity_summary(col_means: pd.Series, col_stds: pd.Series) -> None:
+    """
+    Summarizes the sensitivities of each factor.
+
+    Parameters
+    ----------
+    col_means: pd.Series
+        The mean sensitivity for the given feature.
+    col_stds: pd.Series
+        The standard deviation of the sensitivity for the given feature.
+    """
     for factor in col_means.index:
         print(
             f"{factor}: {col_means[factor]:.3f}+-{col_stds[factor]:.3f}, CoV:{col_stds[factor]/col_means[factor]:.3f}"
@@ -34,9 +44,10 @@ if __name__ == "__main__":
         print(f"Could not find the data in folder {data_path}.")
         exit(1)
 
-    # Remove arbitrary luminal-B patient
+    # Generate seeds for random selection
     np.random.seed(0)
     seeds = np.random.randint(0, int(2**32 - 1), size=5)
+
     factor_names = ["Model", "GLbins", "Wavelength", "Reconstruction"]
     luminal_ids = data[data["Model"] == "luminal"]["PatientName"].unique()
     basal_ids = data[data["Model"] == "basal"]["PatientName"].unique()
@@ -44,6 +55,7 @@ if __name__ == "__main__":
 
     for i in range(5):
         np.random.seed(seeds[i])
+        # Select which patients to use
         selected_lum = set(np.random.choice(luminal_ids, size=8, replace=False))
         selected_bas = set(np.random.choice(basal_ids, size=8, replace=False))
         to_include = selected_lum.union(selected_bas)
@@ -59,17 +71,22 @@ if __name__ == "__main__":
         sensitivities.append(
             interactions.apply(lambda x: extract_factor_summary(x, factor_names))
         )
+
+    # Concatenate results
     sensitivity_df = pd.concat(sensitivities, axis=1)
 
     means = sensitivity_df.groupby(axis=1, level=0).mean()
     create_folder(f"{out_path}/means.csv")
     means.to_csv(f"{out_path}/means.csv")
+
     stds = sensitivity_df.groupby(axis=1, level=0).std()
     stds.to_csv(f"{out_path}/std.csv")
+
     print("Skewness summary:")
     sensitivity_summary(
         means["original_firstorder_Skewness"], stds["original_firstorder_Skewness"]
     )
+
     print("Kurtosis summary:")
     sensitivity_summary(
         means["original_firstorder_Kurtosis"], stds["original_firstorder_Kurtosis"]
