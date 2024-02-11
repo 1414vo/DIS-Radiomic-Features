@@ -71,6 +71,7 @@ def extract_factor_summary(data, factor_names):
     Summarizes the factor analysis. We consider higher-order interactions as error.
     The resulting Series is then normalized to sum up to 1, as to compute the sensitivity.
     Assumes that the 1st order interactions comprise the first rows in the table.
+
     Parameters
     ----------
     data: pd.Series[float]
