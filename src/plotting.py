@@ -3,7 +3,9 @@ import numpy as np
 from .utils import get_feature_groups, generate_colors
 
 
-def plot_interaction_summary(interaction_summary, output_path=None, title=None):
+def plot_interaction_summary(
+    interaction_summary, output_path=None, title=None, colors=None
+):
     """
     Creates a bar chart of the sensitivity analysis.
 
@@ -21,7 +23,8 @@ def plot_interaction_summary(interaction_summary, output_path=None, title=None):
     first_group = list(feature_groups.keys())[0]
 
     # Get bar colors per factor
-    colors = generate_colors(len(interaction_summary.index))
+    if colors is None:
+        colors = generate_colors(len(interaction_summary.index))
     for group in feature_groups:
         for i, factor in enumerate(interaction_summary.index):
             bar = plt.bar(
@@ -42,7 +45,7 @@ def plot_interaction_summary(interaction_summary, output_path=None, title=None):
     plt.xticks([])
     plt.ylabel(r"Factor Sensitivity ($\eta^2$)")
     if title is not None:
-        plt.title(title)
+        plt.title(title, y=1.06)
 
     # Save or show dependent on the output path
     if output_path is None:

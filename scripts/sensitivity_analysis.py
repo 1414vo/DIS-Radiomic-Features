@@ -1,5 +1,5 @@
 from src.anova import manual_anova
-from src.utils import extract_factor_summary
+from src.utils import extract_factor_summary, generate_colors
 from src.io import load_raw, create_folder
 from src.plotting import plot_interaction_summary
 import numpy as np
@@ -18,9 +18,8 @@ if __name__ == "__main__":
         help="Where to store the analysis plots.",
     )
     args = parser.parse_args()
-
-    data_path = args["data_path"]
-    out_path = args["output"]
+    data_path = args.data_path
+    out_path = args.output
     try:
         data = load_raw(data_path)
     except FileNotFoundError:
@@ -34,8 +33,10 @@ if __name__ == "__main__":
     data_filtered = data[data["PatientName"] != to_remove]
     factor_names = ["Model", "GLbins", "Wavelength", "Reconstruction"]
     factor_data = data_filtered[factor_names]
-    # Remove shape features
+    # Remove metadata
     features = data_filtered.iloc[:, 27:-1]
+    # Generate colors
+    colors = np.array(generate_colors(5, colorblind_friendly=True))
 
     # Full analysis
     interactions = features.apply(
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     )
     path = f"{out_path}/full_analysis.png"
     create_folder(path)
-    plot_interaction_summary(interaction_summary, output_path=path)
+    plot_interaction_summary(interaction_summary, output_path=path, colors=colors)
 
     # Fixing the gray levels
     factor_names = ["Model", "Wavelength", "Reconstruction"]
@@ -64,7 +65,12 @@ if __name__ == "__main__":
         )
         path = f"{out_path}/fixed_glbins/analysis_{bins}.png"
         create_folder(path)
-        plot_interaction_summary(interaction_summary, output_path=path)
+        plot_interaction_summary(
+            interaction_summary,
+            output_path=path,
+            colors=colors[[0, 2, 3, 4]],
+            title=f"Sensitivity analysis for {bins} GL Bins",
+        )
 
     # Fixing the reconstruction
     factor_names = [
@@ -86,4 +92,9 @@ if __name__ == "__main__":
         )
         path = f"{out_path}/fixed_reconstruction/analysis_{recon}.png"
         create_folder(path)
-        plot_interaction_summary(interaction_summary, output_path=path)
+        plot_interaction_summary(
+            interaction_summary,
+            output_path=path,
+            colors=colors[[0, 1, 2, 4]],
+            title=f"Sensitivity analysis for Reconstruction {recon}",
+        )

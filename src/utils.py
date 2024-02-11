@@ -1,7 +1,6 @@
 import colorsys
 import numpy as np
 import pandas as pd
-from functools import partial
 
 
 def get_feature_groups(feature_names):
@@ -62,8 +61,9 @@ def generate_colors(n_colors, colorblind_friendly=False):
     else:
         hues = np.linspace(0, 1, n_colors, endpoint=False)
         # Conversion function for HSV to RGB
-        generate_color = np.vectorize(partial(colorsys.hsv_to_rgb, s=1.0, v=1.0))
-        return generate_color(hues)
+        colors = [colorsys.hsv_to_rgb(h, 1.0, 1.0) for h in hues]
+        # colors = [(int(255*c[0]), int(255*c[1]), int(255*c[2])) for c in colors]
+        return colors
 
 
 def extract_factor_summary(data, factor_names):
