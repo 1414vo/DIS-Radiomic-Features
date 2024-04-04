@@ -1,6 +1,6 @@
 from src.anova import manual_anova
 from src.utils import extract_factor_summary
-from src.io import load_raw, create_folder
+from src.my_io import load_raw, create_folder
 import numpy as np
 import pandas as pd
 import argparse

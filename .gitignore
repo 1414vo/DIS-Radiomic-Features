@@ -1,4 +1,5 @@
 /data
 /out
+/notebooks
 **__pycache__/
 **.ipynb_checkpoint/
