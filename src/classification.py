@@ -19,7 +19,13 @@ def single_feature_classification(
         max_depth=config["rfc"]["max_depth"],
         random_state=0,
     )
-    svc = SVC(C=config["svc"]["c"], kernel=config["svc"]["kernel"], random_state=0)
+    svc = SVC(
+        C=config["svc"]["c"],
+        kernel=config["svc"]["kernel"],
+        degree=2,
+        gamma=0.05,
+        random_state=0,
+    )
     results = {
         "SVM Score (Train)": [],
         "SVM Score (Val)": [],
@@ -37,22 +43,30 @@ def single_feature_classification(
         gbc.fit(train_X[[f]], train_y)
 
         # Register scores
-        results["SVM Score (Train)"] = svc.score(train_X[[f]], train_y)
-        results["SVM Score (Val)"] = svc.score(val_X[[f]], val_y)
-        results["Random Forest (Train)"] = rfc.score(train_X[[f]], train_y)
-        results["Random Forest (Val)"] = rfc.score(val_X[[f]], val_y)
-        results["Gradient Boosting Score (Train)"] = gbc.score(train_X[[f]], train_y)
-        results["Gradient Boosting Score (Val)"] = gbc.score(val_X[[f]], val_y)
-        results["Overall Score (Train)"] = (
-            results["SVM Score (Train)"][-1]
-            + results["Random Forest (Train)"][-1]
-            + results["Gradient Boosting Score (Train)"][-1]
-        ) / 3
-        results["Overall Score (Val)"] = (
-            results["SVM Score (Val)"][-1]
-            + results["Random Forest (Val)"][-1]
-            + results["Gradient Boosting Score (Val)"][-1]
-        ) / 3
+        results["SVM Score (Train)"].append(svc.score(train_X[[f]], train_y))
+        results["SVM Score (Val)"].append(svc.score(val_X[[f]], val_y))
+        results["Random Forest Score (Train)"].append(rfc.score(train_X[[f]], train_y))
+        results["Random Forest Score (Val)"].append(rfc.score(val_X[[f]], val_y))
+        results["Gradient Boosting Score (Train)"].append(
+            gbc.score(train_X[[f]], train_y)
+        )
+        results["Gradient Boosting Score (Val)"].append(gbc.score(val_X[[f]], val_y))
+        results["Overall Score (Train)"].append(
+            (
+                results["SVM Score (Train)"][-1]
+                + results["Random Forest Score (Train)"][-1]
+                + results["Gradient Boosting Score (Train)"][-1]
+            )
+            / 3
+        )
+        results["Overall Score (Val)"].append(
+            (
+                results["SVM Score (Val)"][-1]
+                + results["Random Forest Score (Val)"][-1]
+                + results["Gradient Boosting Score (Val)"][-1]
+            )
+            / 3
+        )
 
     results_df = pd.DataFrame(results, index=train_X.columns)
     if out_path is not None:
