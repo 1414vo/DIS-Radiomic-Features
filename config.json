@@ -1,0 +1,15 @@
+{
+    "gbc": {
+        "lr":1.0,
+        "n_estimators":100,
+        "max_depth":3
+    },
+    "rfc": {
+        "n_estimators":100,
+        "max_depth":3
+    },
+    "svc": {
+        "c":1.0,
+        "kernel":"rbf"
+    }
+}
