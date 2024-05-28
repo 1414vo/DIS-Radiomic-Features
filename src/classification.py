@@ -1,0 +1,101 @@
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.svm import SVC
+import matplotlib.pyplot as plt
+import pandas as pd
+import shap
+
+
+def single_feature_classification(
+    train_X, train_y, val_X, val_y, config, out_path=None
+):
+    gbc = GradientBoostingClassifier(
+        learning_rate=config["gbc"]["lr"],
+        n_estimators=config["gbc"]["n_estimators"],
+        max_depth=config["gbc"]["max_depth"],
+        random_state=0,
+    )
+    rfc = RandomForestClassifier(
+        n_estimators=config["rfc"]["n_estimators"],
+        max_depth=config["rfc"]["max_depth"],
+        random_state=0,
+    )
+    svc = SVC(C=config["svc"]["c"], kernel=config["svc"]["kernel"], random_state=0)
+    results = {
+        "SVM Score (Train)": [],
+        "SVM Score (Val)": [],
+        "Random Forest Score (Train)": [],
+        "Random Forest Score (Val)": [],
+        "Gradient Boosting Score (Train)": [],
+        "Gradient Boosting Score (Val)": [],
+        "Overall Score (Train)": [],
+        "Overall Score (Val)": [],
+    }
+    for f in train_X.columns:
+        # Fit models
+        svc.fit(train_X[[f]], train_y)
+        rfc.fit(train_X[[f]], train_y)
+        gbc.fit(train_X[[f]], train_y)
+
+        # Register scores
+        results["SVM Score (Train)"] = svc.score(train_X[[f]], train_y)
+        results["SVM Score (Val)"] = svc.score(val_X[[f]], val_y)
+        results["Random Forest (Train)"] = rfc.score(train_X[[f]], train_y)
+        results["Random Forest (Val)"] = rfc.score(val_X[[f]], val_y)
+        results["Gradient Boosting Score (Train)"] = gbc.score(train_X[[f]], train_y)
+        results["Gradient Boosting Score (Val)"] = gbc.score(val_X[[f]], val_y)
+        results["Overall Score (Train)"] = (
+            results["SVM Score (Train)"][-1]
+            + results["Random Forest (Train)"][-1]
+            + results["Gradient Boosting Score (Train)"][-1]
+        ) / 3
+        results["Overall Score (Val)"] = (
+            results["SVM Score (Val)"][-1]
+            + results["Random Forest (Val)"][-1]
+            + results["Gradient Boosting Score (Val)"][-1]
+        ) / 3
+
+    results_df = pd.DataFrame(results, index=train_X.columns)
+    if out_path is not None:
+        results_df.to_csv(out_path)
+
+    return results_df
+
+
+def reduced_feature_classification(
+    train_X, train_y, test_X, test_y, config, out_path=None
+):
+    gbc = GradientBoostingClassifier(
+        learning_rate=config["gbc"]["lr"],
+        n_estimators=config["gbc"]["n_estimators"],
+        max_depth=config["gbc"]["max_depth"],
+        random_state=0,
+    )
+    rfc = RandomForestClassifier(
+        n_estimators=config["rfc"]["n_estimators"],
+        max_depth=config["rfc"]["max_depth"],
+        random_state=0,
+    )
+    svc = SVC(C=config["svc"]["c"], kernel=config["svc"]["kernel"], random_state=0)
+
+    for classifier, name in zip(
+        [gbc, rfc, svc], ["Gradient Boosting", "Random Forest", "SVM"]
+    ):
+        print(f"{name} train accuracy: {classifier.score(train_X, train_y)}")
+        print(f"{name} test accuracy: {classifier.score(test_X, test_y)}")
+
+        if name in ["Gradient Boosting", "Random Forest"]:
+            explainer = shap.TreeExplainer(classifier)
+        else:
+            explainer = shap.KernelExplainer(classifier)
+
+        explanation = explainer(train_X)
+        shap_values = explanation.values
+        _, axs = plt.subplots(2, 1, figsize=(8, 10))
+        shap.plots.beeswarm(explanation, ax=axs[0])
+        shap.plots.bar(shap_values, ax=axs[1])
+
+        # Save or show dependent on the output path
+        if out_path is None:
+            plt.show()
+        else:
+            plt.savefig(f"{out_path}_{name}.png ")
