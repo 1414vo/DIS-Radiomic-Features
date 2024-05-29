@@ -56,3 +56,30 @@ def plot_interaction_summary(
         plt.show()
     else:
         plt.savefig(output_path)
+
+
+def plot_rm_corr_statistics(corrs, p_vals, out_path):
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5), sharey=True)
+
+    im1 = axs[0].imshow(corrs, cmap="viridis", aspect="auto", vmin=-1, vmax=1)
+    axs[0].set_title("Feature Correlations")
+    axs[0].set_xlabel("Feature ID")
+    axs[0].set_ylabel("Feature ID")
+
+    im2 = axs[1].imshow(p_vals, cmap="viridis", aspect="auto", vmin=0, vmax=1)
+    axs[1].set_title("RM-Corr p-values")
+    axs[1].set_xlabel("Feature ID")
+
+    cbar = fig.colorbar(im1, ax=axs.ravel().tolist(), shrink=0.95)
+    cbar.set_label("Value")
+
+    cbar = fig.colorbar(im2, ax=axs.ravel().tolist(), shrink=0.95)
+    cbar.set_label("Value")
+
+    plt.tight_layout()
+
+    # Save or show dependent on the output path
+    if out_path is None:
+        plt.show()
+    else:
+        plt.savefig(out_path)

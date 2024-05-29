@@ -1,6 +1,8 @@
 import colorsys
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator
+from sklearn.linear_model import LinearRegression
 
 
 def get_feature_groups(feature_names):
@@ -93,3 +95,109 @@ def extract_factor_summary(data, factor_names):
 
     # Normalize and return
     return new_col / new_col.sum()
+
+
+class NoVoxelsScaler(BaseEstimator):
+    def __init__(self, transform_options):
+        super(NoVoxelsScaler, self).__init__()
+        for transform in transform_options:
+            assert transform in [
+                "lin",
+                "sq",
+                "cub",
+                "inv",
+                "inv_sq",
+                "inv_cub",
+                "log",
+                "inv_log",
+            ], f"Unexpected transformation {transform} received."
+        self.transform_options = transform_options
+        self.fits = []
+
+    def fit(self, X, no_voxels):
+        for i in range(X.shape[1]):
+            X_col = X[:, i]
+            col_scaler = SingleNoVoxelsScaler(self.transform_options)
+            col_scaler.fit(X_col, no_voxels)
+            self.fits.append(col_scaler)
+
+    def transform(self, X, no_voxels):
+        assert X.shape[1] == len(
+            self.fits
+        ), f"Number of columns different from fit ({len(self.fits)})"
+        X_norm = np.zeros_like(X)
+        for i in range(X.shape[1]):
+            X_col = X[:, i]
+            X_norm[:, i] = self.fits[i].transform(X_col, no_voxels)
+
+        return X_norm
+
+    def fit_transform(self, X, no_voxels):
+        self.fit(X, no_voxels)
+        return self.transform(X, no_voxels)
+
+
+class SingleNoVoxelsScaler(BaseEstimator):
+    def __init__(self, transform_options):
+        super(SingleNoVoxelsScaler, self).__init__()
+        for transform in transform_options:
+            assert transform in [
+                "lin",
+                "sq",
+                "cub",
+                "inv",
+                "inv_sq",
+                "inv_cub",
+                "log",
+                "inv_log",
+            ], f"Unexpected transformation {transform} received."
+        self.transform_options = transform_options
+        self.model_fit = None
+
+    def _apply_transform(self, X, transform):
+        if transform == "lin":
+            return X
+        elif transform == "sq":
+            return X**2
+        elif transform == "cub":
+            return X**3
+        elif transform == "inv":
+            return 1 / X
+        elif transform == "inv_sq":
+            return 1 / X**2
+        elif transform == "inv_cub":
+            return 1 / X**3
+        elif transform == "log":
+            return np.log(X)
+        elif transform == "inv_log":
+            return 1 / np.log(X)
+        else:
+            return X
+
+    def fit(self, X, no_voxels):
+        best_score = 0
+        best_regressor = None
+        best_regressor_transform = None
+
+        for transform in self.transform_options:
+            regressor = LinearRegression(fit_intercept=True)
+            transformed_voxels = self._apply_transform(no_voxels, transform).reshape(
+                -1, 1
+            )
+            regressor.fit(transformed_voxels, X)
+
+            if regressor.score(transformed_voxels, X) > best_score:
+                best_score = regressor.score(transformed_voxels, X)
+                best_regressor = regressor
+                best_regressor_transform = transform
+
+        self.model_fit = best_regressor
+        self.model_transform = best_regressor_transform
+
+    def transform(self, X, no_voxels):
+        p0 = self.model_fit.intercept_
+        return (X - p0) / self._apply_transform(no_voxels, self.model_transform)
+
+    def fit_transform(self, X, no_voxels):
+        self.fit(X, no_voxels)
+        return self.transform(X, no_voxels)
