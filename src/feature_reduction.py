@@ -49,7 +49,6 @@ def reduce_features_kw(
         basal = feature[mask]
         luminal = feature[~mask]
         p_vals.append(stats.kruskal(basal, luminal).pvalue)
-        print(feature_names[i], p_vals[-1])
 
     sorted_features = sorted(
         list(zip(p_vals, feature_names)), key=operator.itemgetter(0)
@@ -79,9 +78,10 @@ def reduce_features_kw(
 
 def reduce_features_rm_corr(features, feature_scores, out_path=None):
     removed_features = set()
+    norm_features = features.apply(lambda x: x / x.std(), axis=0)
 
-    for i, f1 in enumerate(list(features.columns)):
-        for f2 in list(features.columns)[i + 1 :]:
+    for i, f1 in enumerate(list(norm_features.columns)):
+        for f2 in list(norm_features.columns)[i + 1 :]:
             if (
                 f1 == "PatientName"
                 or f2 == "PatientName"
@@ -89,10 +89,9 @@ def reduce_features_rm_corr(features, feature_scores, out_path=None):
                 or f2 in removed_features
             ):
                 continue
-            rm_corr = pg.rm_corr(features, x=f1, y=f2, subject="PatientName").r.values[
-                0
-            ]
-            print(f1, f2, feature_scores.loc[f1])
+            rm_corr = pg.rm_corr(
+                norm_features, x=f1, y=f2, subject="PatientName"
+            ).r.values[0]
             if rm_corr > 0.9:
                 if (
                     feature_scores.loc[f1, "Overall Score (Train)"]
@@ -111,21 +110,25 @@ def reduce_features_rm_corr(features, feature_scores, out_path=None):
 
 def compute_all_correlations(features, out_path=None):
     n_features = len(features.columns) - 1
+    norm_features = features.apply(lambda x: x / x.std(), axis=0)
     corrs = np.ones((n_features, n_features))
     p_vals = np.zeros((n_features, n_features))
 
     print("Computing correlations: ")
 
     with tqdm(total=n_features * (n_features - 1) // 2) as pbar:
-        for i, f1 in enumerate(list(features.columns)[1:]):
-            for j, f2 in enumerate(list(features.columns)[1:]):
+        for i, f1 in enumerate(list(norm_features.columns)[1:]):
+            for j, f2 in enumerate(list(norm_features.columns)[1:]):
                 if i >= j:
                     continue
-                rm_corr = pg.rm_corr(features, x=f1, y=f2, subject="PatientName")
+                rm_corr = pg.rm_corr(norm_features, x=f1, y=f2, subject="PatientName")
                 corrs[i, j] = rm_corr.r.values[0]
                 corrs[j, i] = rm_corr.r.values[0]
                 p_vals[i, j] = rm_corr.pval.values[0]
                 p_vals[j, i] = rm_corr.pval.values[0]
                 pbar.update(1)
-
+    with open("./out/corrs.npy", "wb") as f:
+        np.save(f, corrs)
+    with open("./out/pvals.npy", "wb") as f:
+        np.save(f, p_vals)
     plot_rm_corr_statistics(corrs, p_vals, out_path)

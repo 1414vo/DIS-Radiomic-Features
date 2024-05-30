@@ -59,22 +59,25 @@ def plot_interaction_summary(
 
 
 def plot_rm_corr_statistics(corrs, p_vals, out_path):
-    fig, axs = plt.subplots(1, 2, figsize=(15, 5), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, dpi=300)
 
     im1 = axs[0].imshow(corrs, cmap="viridis", aspect="auto", vmin=-1, vmax=1)
     axs[0].set_title("Feature Correlations")
-    axs[0].set_xlabel("Feature ID")
-    axs[0].set_ylabel("Feature ID")
+    axs[0].set_xlabel("Feature ID", loc="right")
+    axs[0].set_ylabel("Feature ID", loc="top")
+    axs[0].set_xticks(range(0, 100, 10))
+    axs[0].set_yticks(range(0, 100, 10))
+    axs[0].invert_yaxis()
 
     im2 = axs[1].imshow(p_vals, cmap="viridis", aspect="auto", vmin=0, vmax=1)
     axs[1].set_title("RM-Corr p-values")
-    axs[1].set_xlabel("Feature ID")
+    axs[1].set_xlabel("Feature ID", loc="right")
+    axs[1].set_xticks(range(0, 100, 10))
+    axs[1].invert_yaxis()
 
-    cbar = fig.colorbar(im1, ax=axs.ravel().tolist(), shrink=0.95)
-    cbar.set_label("Value")
-
-    cbar = fig.colorbar(im2, ax=axs.ravel().tolist(), shrink=0.95)
-    cbar.set_label("Value")
+    cbar = fig.colorbar(im1, ax=axs[0], shrink=0.95, pad=0.01)
+    cbar.set_ticks(np.arange(-1, 1.2, 0.2))
+    fig.colorbar(im2, ax=axs[1], shrink=0.95, pad=0.01)
 
     plt.tight_layout()
 

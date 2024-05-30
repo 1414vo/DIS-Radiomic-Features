@@ -1,4 +1,4 @@
-from src.feature_reduction import compute_all_correlations
+from src.feature_reduction import compute_all_correlations, reduce_features
 from src.config_parser import parse_config
 import numpy as np
 import pandas as pd
@@ -51,5 +51,7 @@ if __name__ == "__main__":
     # Generate seeds for random selection
     np.random.seed(0)
 
-    # reduce_features(data, models, feature_scores, benjamini_alpha=0.25,out_path=args.output)
+    reduce_features(
+        data, models, feature_scores, benjamini_alpha=0.25, out_path=args.output
+    )
     compute_all_correlations(data, out_path=f"{args.output}/corrs.png")
