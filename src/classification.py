@@ -1,5 +1,7 @@
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from .plotting import plot_logistic_regression_coef
 import matplotlib.pyplot as plt
 import pandas as pd
 import shap
@@ -89,27 +91,30 @@ def reduced_feature_classification(
         max_depth=config["rfc"]["max_depth"],
         random_state=0,
     )
-    svc = SVC(C=config["svc"]["c"], kernel=config["svc"]["kernel"], random_state=0)
+    lr = LogisticRegression()
 
     for classifier, name in zip(
-        [gbc, rfc, svc], ["Gradient Boosting", "Random Forest", "SVM"]
+        [gbc, rfc, lr], ["Gradient Boosting", "Random Forest", "Logistic Regression"]
     ):
+        classifier.fit(train_X, train_y)
         print(f"{name} train accuracy: {classifier.score(train_X, train_y)}")
         print(f"{name} test accuracy: {classifier.score(test_X, test_y)}")
 
         if name in ["Gradient Boosting", "Random Forest"]:
             explainer = shap.TreeExplainer(classifier)
+            explanation = explainer(test_X)
+            if name == "Random Forest":
+                explanation = explanation[:, :, 1]
+            plt.figure(figsize=(40, 40))
+            plt.subplot(1, 2, 1)
+            shap.plots.beeswarm(explanation, show=False)
+            plt.subplot(1, 2, 2)
+            shap.plots.bar(explanation, show=False)
         else:
-            explainer = shap.KernelExplainer(classifier)
-
-        explanation = explainer(train_X)
-        shap_values = explanation.values
-        _, axs = plt.subplots(2, 1, figsize=(8, 10))
-        shap.plots.beeswarm(explanation, ax=axs[0])
-        shap.plots.bar(shap_values, ax=axs[1])
+            plot_logistic_regression_coef(classifier, train_X)
 
         # Save or show dependent on the output path
         if out_path is None:
             plt.show()
         else:
-            plt.savefig(f"{out_path}_{name}.png ")
+            plt.savefig(f"{out_path}_{name}.png")

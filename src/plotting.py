@@ -2,6 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from .utils import get_feature_groups, generate_colors
+import re
+
+
+def __shorten_name(name, max_len=14):
+    type, feature = name.split(" ")
+    feature_words = re.findall("[A-Z][^A-Z]*", feature)
+    shorter_name = type + " "
+    for word in feature_words:
+        shorter_name += word
+        if len(shorter_name) > max_len:
+            return shorter_name + "..."
+    return shorter_name
 
 
 def plot_interaction_summary(
@@ -86,3 +98,43 @@ def plot_rm_corr_statistics(corrs, p_vals, out_path):
         plt.show()
     else:
         plt.savefig(out_path)
+
+
+def plot_logistic_regression_coef(model, train_X):
+    coefficients = model.coef_[0]
+    feature_names = train_X.columns
+
+    X = np.hstack([np.ones((train_X.shape[0], 1)), train_X])
+    probs = model.predict_proba(train_X)
+    probs = np.diag(probs[:, 0] * probs[:, 1])
+    covariance_matrix = np.linalg.inv(X.T @ probs @ X)
+
+    standard_errors = np.sqrt(np.diag(covariance_matrix))[1:]
+
+    sorted_indices = np.argsort(abs(coefficients))[::-1][:15]
+    sorted_coefficients = abs(coefficients[sorted_indices])
+    sorted_errors = 2 * standard_errors[sorted_indices]
+    sorted_feature_names = [__shorten_name(feature_names[i]) for i in sorted_indices]
+
+    _, ax = plt.subplots(figsize=(7, 5))
+
+    cmap = plt.get_cmap("viridis")
+    colors = cmap(np.linspace(0, 1, len(sorted_coefficients)))[::-1]
+    for i in range(len(sorted_coefficients)):
+        point = ax.errorbar(
+            i,
+            sorted_coefficients[i],
+            yerr=sorted_errors[i],
+            fmt="o",
+            color=colors[i],
+            ecolor=colors[i],
+        )
+        if i == len(sorted_coefficients) // 2:
+            point.set_label(r"Coefficient $\pm 2\sigma$")
+    ax.set_xticks(np.arange(len(sorted_coefficients)))
+    ax.set_xticklabels(sorted_feature_names, rotation=35, ha="right")
+    ax.set_ylabel("Absolute Value of Coefficient")
+    ax.set_ylim(0)
+    ax.legend()
+
+    plt.tight_layout()
