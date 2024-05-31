@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from .utils import get_feature_groups, generate_colors
+from sklearn.ensemble import RandomForestClassifier
 from matplotlib import rcParams
 import re
 import shap
@@ -16,15 +17,21 @@ def __modify_params():
     rcParams["text.latex.preamble"] = r"\usepackage{amsfonts}"
 
 
-def __shorten_name(name, max_len=14):
+def __shorten_name(name, max_len=23, abbreviate=True):
     type, feature = name.split(" ")
     feature_words = re.findall("[A-Z][^A-Z]*", feature)
-    shorter_name = type + " "
-    for word in feature_words:
-        shorter_name += word
-        if len(shorter_name) > max_len:
-            return shorter_name + "..."
-    return shorter_name
+
+    if abbreviate:
+        if len(name) > max_len:
+            return type + " " + "".join([word[0] for word in feature_words])
+        return name
+    else:
+        shorter_name = type + " "
+        for word in feature_words:
+            shorter_name += word
+            if len(shorter_name) > max_len:
+                return shorter_name + "..."
+        return shorter_name
 
 
 def plot_interaction_summary(
@@ -131,7 +138,7 @@ def plot_logistic_regression_coef(model, train_X, out_path=None):
     _, ax = plt.subplots(figsize=(7, 5), dpi=300)
 
     cmap = plt.get_cmap("viridis")
-    colors = cmap(np.linspace(0, 1, len(sorted_coefficients)))[::-1]
+    colors = cmap(np.linspace(0.1, 0.9, len(sorted_coefficients)))[::-1]
     for i in range(len(sorted_coefficients)):
         point = ax.errorbar(
             i,
@@ -160,9 +167,16 @@ def plot_logistic_regression_coef(model, train_X, out_path=None):
         plt.savefig(out_path)
 
 
-def plot_explanation(explanation, out_path=None):
+def plot_explanation(classifier, test_X, out_path=None):
+    test_X = test_X.copy()
+    test_X.columns = [__shorten_name(col) for col in test_X.columns]
+    explainer = shap.TreeExplainer(classifier)
+    explanation = explainer(test_X)
+    if isinstance(classifier, RandomForestClassifier):
+        explanation = explanation[:, :, 1]
+
     __modify_params()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    _, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 5))
     plt.sca(ax1)
     shap.plots.beeswarm(explanation, show=False, plot_size=None)
     shap.plots.bar(explanation, show=False, ax=ax2)

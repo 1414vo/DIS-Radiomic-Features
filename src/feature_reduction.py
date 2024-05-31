@@ -27,7 +27,7 @@ def reduce_features(
     reduced_features = features[["PatientName"] + reduced_feature_names]
 
     if out_path is not None:
-        out_path_rm_corr = f"{out_path}/rm_corr.csv"
+        out_path_rm_corr = f"{out_path}/Reduced_features.csv"
     else:
         out_path_rm_corr = None
 
@@ -82,12 +82,7 @@ def reduce_features_rm_corr(features, feature_scores, out_path=None):
 
     for i, f1 in enumerate(list(norm_features.columns)):
         for f2 in list(norm_features.columns)[i + 1 :]:
-            if (
-                f1 == "PatientName"
-                or f2 == "PatientName"
-                or f1 in removed_features
-                or f2 in removed_features
-            ):
+            if f1 == "PatientName" or f2 == "PatientName" or f1 in removed_features:
                 continue
             rm_corr = pg.rm_corr(
                 norm_features, x=f1, y=f2, subject="PatientName"
@@ -95,16 +90,16 @@ def reduce_features_rm_corr(features, feature_scores, out_path=None):
             if rm_corr > 0.9:
                 if (
                     feature_scores.loc[f1, "Overall Score (Train)"]
-                    >= feature_scores.loc[f2, "Overall Score (Train)"]
+                    > feature_scores.loc[f2, "Overall Score (Train)"]
                 ):
                     removed_features.add(f2)
                     print(f"Removed feature {f2}")
                 else:
                     removed_features.add(f1)
                     print(f"Removed feature {f1}")
-    reduced_features = features.drop(columns=list(removed_features))
+    reduced_features = features.drop(columns=list(removed_features) + ["PatientName"])
     if out_path is not None:
-        reduced_features.to_csv(out_path)
+        reduced_features.to_csv(out_path, index=False)
     return reduce_features
 
 

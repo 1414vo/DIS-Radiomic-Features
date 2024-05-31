@@ -3,7 +3,6 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from .plotting import plot_logistic_regression_coef, plot_explanation
 import pandas as pd
-import shap
 
 
 def single_feature_classification(
@@ -100,11 +99,7 @@ def reduced_feature_classification(
         print(f"{name} test accuracy: {classifier.score(test_X, test_y)}")
 
         if name in ["Gradient Boosting", "Random Forest"]:
-            explainer = shap.TreeExplainer(classifier)
-            explanation = explainer(test_X)
-            if name == "Random Forest":
-                explanation = explanation[:, :, 1]
-            plot_explanation(explanation, out_path=f"{out_path}_{name}.png")
+            plot_explanation(classifier, test_X, out_path=f"{out_path}_{name}.png")
 
         else:
             plot_logistic_regression_coef(
