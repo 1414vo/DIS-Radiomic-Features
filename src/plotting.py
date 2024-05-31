@@ -2,7 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from .utils import get_feature_groups, generate_colors
+from matplotlib import rcParams
 import re
+import shap
+
+
+def __modify_params():
+    rcParams["pdf.fonttype"] = 42
+    rcParams["ps.fonttype"] = 42
+    rcParams["font.family"] = "serif"
+    rcParams["font.sans-serif"] = ["Palatio"]
+    rcParams["text.usetex"] = True
+    rcParams["text.latex.preamble"] = r"\usepackage{amsfonts}"
 
 
 def __shorten_name(name, max_len=14):
@@ -100,7 +111,8 @@ def plot_rm_corr_statistics(corrs, p_vals, out_path):
         plt.savefig(out_path)
 
 
-def plot_logistic_regression_coef(model, train_X):
+def plot_logistic_regression_coef(model, train_X, out_path=None):
+    __modify_params()
     coefficients = model.coef_[0]
     feature_names = train_X.columns
 
@@ -116,7 +128,7 @@ def plot_logistic_regression_coef(model, train_X):
     sorted_errors = 2 * standard_errors[sorted_indices]
     sorted_feature_names = [__shorten_name(feature_names[i]) for i in sorted_indices]
 
-    _, ax = plt.subplots(figsize=(7, 5))
+    _, ax = plt.subplots(figsize=(7, 5), dpi=300)
 
     cmap = plt.get_cmap("viridis")
     colors = cmap(np.linspace(0, 1, len(sorted_coefficients)))[::-1]
@@ -128,13 +140,36 @@ def plot_logistic_regression_coef(model, train_X):
             fmt="o",
             color=colors[i],
             ecolor=colors[i],
+            capsize=5,
         )
         if i == len(sorted_coefficients) // 2:
             point.set_label(r"Coefficient $\pm 2\sigma$")
     ax.set_xticks(np.arange(len(sorted_coefficients)))
     ax.set_xticklabels(sorted_feature_names, rotation=35, ha="right")
-    ax.set_ylabel("Absolute Value of Coefficient")
+    ax.set_ylabel("Absolute Value of Coefficient", fontsize=14)
     ax.set_ylim(0)
-    ax.legend()
+    ax.legend(fontsize=12)
+    ax.set_facecolor((0.92, 0.92, 0.92))
 
     plt.tight_layout()
+
+    # Save or show dependent on the output path
+    if out_path is None:
+        plt.show()
+    else:
+        plt.savefig(out_path)
+
+
+def plot_explanation(explanation, out_path=None):
+    __modify_params()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    plt.sca(ax1)
+    shap.plots.beeswarm(explanation, show=False, plot_size=None)
+    shap.plots.bar(explanation, show=False, ax=ax2)
+    plt.tight_layout()
+
+    # Save or show dependent on the output path
+    if out_path is None:
+        plt.show()
+    else:
+        plt.savefig(out_path)

@@ -1,8 +1,7 @@
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from .plotting import plot_logistic_regression_coef
-import matplotlib.pyplot as plt
+from .plotting import plot_logistic_regression_coef, plot_explanation
 import pandas as pd
 import shap
 
@@ -105,16 +104,9 @@ def reduced_feature_classification(
             explanation = explainer(test_X)
             if name == "Random Forest":
                 explanation = explanation[:, :, 1]
-            plt.figure(figsize=(40, 40))
-            plt.subplot(1, 2, 1)
-            shap.plots.beeswarm(explanation, show=False)
-            plt.subplot(1, 2, 2)
-            shap.plots.bar(explanation, show=False)
-        else:
-            plot_logistic_regression_coef(classifier, train_X)
+            plot_explanation(explanation, out_path=f"{out_path}_{name}.png")
 
-        # Save or show dependent on the output path
-        if out_path is None:
-            plt.show()
         else:
-            plt.savefig(f"{out_path}_{name}.png")
+            plot_logistic_regression_coef(
+                classifier, train_X, out_path=f"{out_path}_{name}.png"
+            )
