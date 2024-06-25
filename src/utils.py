@@ -4,6 +4,10 @@ import pandas as pd
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import LinearRegression
 
+# from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+# from sklearn.svm import SVC
+# from sklearn.model_selection import GridSearchCV, PredefinedSplit
+
 
 def get_feature_groups(feature_names):
     """
@@ -201,3 +205,44 @@ class SingleNoVoxelsScaler(BaseEstimator):
     def fit_transform(self, X, no_voxels):
         self.fit(X, no_voxels)
         return self.transform(X, no_voxels)
+
+
+def k_fold_split_by_patient(data, models, patient_names, k=5):
+    # Generate seeds for random selection
+    np.random.seed(0)
+
+    basal_patients = np.unique(patient_names[models == "basal"])
+    luminal_patients = np.unique(patient_names[models == "luminal"])
+
+    assert (
+        len(basal_patients) > k
+    ), f"Data should contain at least k={k} patients from the basal model"
+
+    assert (
+        len(luminal_patients) > k
+    ), f"Data should contain at least k={k} patients from the basal model"
+
+    test_len = min(len(basal_patients) // k, len(luminal_patients) // k)
+    np.random.shuffle(basal_patients)
+    np.random.shuffle(luminal_patients)
+
+    train_Xs = []
+    train_ys = []
+    test_Xs = []
+    test_ys = []
+    folds = -np.ones(len(models))
+
+    for i in range(k):
+        test_patients = np.concatenate(
+            (
+                basal_patients[i * test_len : (i + 1) * test_len],
+                luminal_patients[i * test_len : (i + 1) * test_len],
+            )
+        )
+        train_Xs.append(data[~np.isin(patient_names, test_patients)].copy())
+        test_Xs.append(data[np.isin(patient_names, test_patients)].copy())
+        train_ys.append(models[~np.isin(patient_names, test_patients)].copy())
+        test_ys.append(models[np.isin(patient_names, test_patients)].copy())
+        folds[np.isin(patient_names, test_patients)] = i
+
+    return train_Xs, train_ys, test_Xs, test_ys, folds

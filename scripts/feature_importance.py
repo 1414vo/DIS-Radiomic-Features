@@ -1,6 +1,6 @@
 from src.classification import reduced_feature_classification
 from src.config_parser import parse_config
-import numpy as np
+from src.utils import k_fold_split_by_patient
 import pandas as pd
 import argparse
 
@@ -29,6 +29,9 @@ if __name__ == "__main__":
     out_path = args.output
     try:
         data = pd.read_csv(f"{data_path}/Reduced_features.csv")
+        patient_names = pd.read_csv(
+            f"{data_path}/All_features_corrected_final_patient.csv"
+        )["PatientName"]
         models = pd.read_csv(f"{data_path}/All_model.csv")["Model"]
     except FileNotFoundError:
         print(f"Could not find the data in {data_path}.")
@@ -39,30 +42,11 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print(f"Could not find configuration file {args.cfg}.")
         exit(1)
-    if args.validation:
-        # Generate seeds for random selection
-        np.random.seed(0)
-        patient_to_drop = np.random.choice(
-            data[models["Model"] == "luminal"]["PatientName"].unique()
-        )
-        balanced_data = data[data["PatientName"] != patient_to_drop]
-        balanced_models = models[data["PatientName"] != patient_to_drop]
 
-        test_patients_basal = np.random.choice(
-            balanced_data[balanced_models["Model"] == "basal"]["PatientName"].unique(),
-            size=2,
+    if args.validation:
+        train_Xs, train_ys, test_Xs, test_ys, _ = k_fold_split_by_patient(
+            data, models, patient_names
         )
-        test_patients_luminal = np.random.choice(
-            balanced_data[balanced_models["Model"] == "luminal"][
-                "PatientName"
-            ].unique(),
-            size=2,
-        )
-        test_patients = np.concatenate((test_patients_basal, test_patients_luminal))
-        train_X = balanced_data[~balanced_data["PatientName"].isin(test_patients)]
-        test_X = balanced_data[balanced_data["PatientName"].isin(test_patients)]
-        train_y = balanced_models[~balanced_data["PatientName"].isin(test_patients)]
-        test_y = balanced_models[balanced_data["PatientName"].isin(test_patients)]
     else:
         train_Xs = [data]
         test_Xs = [data.copy()]
