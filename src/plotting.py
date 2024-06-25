@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from .utils import get_feature_groups, generate_colors
-from sklearn.ensemble import RandomForestClassifier
 from matplotlib import rcParams
 import re
 import shap
@@ -50,6 +49,7 @@ def plot_interaction_summary(
     output_path: str
         Where to save the plot. If None, displays it directly.
     """
+    __modify_params()
     plt.figure(dpi=300)
     feature_groups = get_feature_groups(interaction_summary.columns)
     # Dictionary keeping track of stack height
@@ -89,6 +89,7 @@ def plot_interaction_summary(
 
 
 def plot_rm_corr_statistics(corrs, p_vals, out_path):
+    __modify_params()
     fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharey=True, dpi=300)
 
     im1 = axs[0].imshow(corrs, cmap="viridis", aspect="auto", vmin=-1, vmax=1)
@@ -167,13 +168,11 @@ def plot_logistic_regression_coef(model, train_X, out_path=None):
         plt.savefig(out_path)
 
 
-def plot_explanation(classifier, test_X, out_path=None):
-    test_X = test_X.copy()
-    test_X.columns = [__shorten_name(col) for col in test_X.columns]
-    explainer = shap.TreeExplainer(classifier)
-    explanation = explainer(test_X)
-    if isinstance(classifier, RandomForestClassifier):
-        explanation = explanation[:, :, 1]
+def plot_explanation(shap_values, X_test, base_value, column_names, out_path=None):
+    columns = [__shorten_name(col) for col in column_names]
+    explanation = shap.Explanation(
+        shap_values, data=X_test, base_values=base_value, feature_names=columns
+    )
 
     __modify_params()
     _, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 5))
