@@ -1,6 +1,5 @@
 from src.classification import reduced_feature_classification
 from src.config_parser import parse_config
-from sklearn.preprocessing import StandardScaler
 import numpy as np
 import pandas as pd
 import argparse
@@ -65,18 +64,16 @@ if __name__ == "__main__":
         train_y = balanced_models[~balanced_data["PatientName"].isin(test_patients)]
         test_y = balanced_models[balanced_data["PatientName"].isin(test_patients)]
     else:
-        train_X = data
-        test_X = data.copy()
-        train_y = models
-        test_y = models.copy()
-    scaler = StandardScaler()
-    train_X[train_X.columns] = scaler.fit_transform(train_X)
-    test_X[test_X.columns] = scaler.transform(test_X)
+        train_Xs = [data]
+        test_Xs = [data.copy()]
+        train_ys = [models]
+        test_ys = [models.copy()]
+
     reduced_feature_classification(
-        train_X=train_X,
-        train_y=train_y,
-        test_X=test_X,
-        test_y=test_y,
+        train_Xs=train_Xs,
+        train_ys=train_ys,
+        test_Xs=test_Xs,
+        test_ys=test_ys,
         config=config,
         out_path=f"{out_path}/importance",
     )
