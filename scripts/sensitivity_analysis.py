@@ -17,6 +17,7 @@ if __name__ == "__main__":
         default="./out/sens_analysis",
         help="Where to store the analysis plots.",
     )
+    parser.add_argument("--remove_luminal", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
     data_path = args.data_path
     out_path = args.output
@@ -28,9 +29,12 @@ if __name__ == "__main__":
 
     # Remove arbitrary luminal-B patient
     np.random.seed(0)
-    luminal_ids = data[data["Model"] == "luminal"]["PatientName"].unique()
-    to_remove = np.random.choice(luminal_ids)
-    data_filtered = data[data["PatientName"] != to_remove]
+    if args.remove_luminal:
+        luminal_ids = data[data["Model"] == "luminal"]["PatientName"].unique()
+        to_remove = np.random.choice(luminal_ids)
+        data_filtered = data[data["PatientName"] != to_remove]
+    else:
+        data_filtered = data.copy()
     factor_names = ["Model", "GLbins", "Wavelength", "Reconstruction"]
     factor_data = data_filtered[factor_names]
     # Remove metadata
@@ -45,7 +49,8 @@ if __name__ == "__main__":
     interaction_summary = interactions.apply(
         lambda x: extract_factor_summary(x, factor_names)
     )
-    path = f"{out_path}/full_analysis.png"
+    remove_luminal = "balanced" if args.remove_luminal else "all"
+    path = f"{out_path}/full_analysis_{remove_luminal}.png"
     create_folder(path)
     plot_interaction_summary(interaction_summary, output_path=path, colors=colors)
 
@@ -63,7 +68,7 @@ if __name__ == "__main__":
         interaction_summary = interactions.apply(
             lambda x: extract_factor_summary(x, factor_names)
         )
-        path = f"{out_path}/fixed_glbins/analysis_{bins}.png"
+        path = f"{out_path}/fixed_glbins/analysis_{bins}_{remove_luminal}.png"
         create_folder(path)
         plot_interaction_summary(
             interaction_summary,
@@ -90,7 +95,7 @@ if __name__ == "__main__":
         interaction_summary = interactions.apply(
             lambda x: extract_factor_summary(x, factor_names)
         )
-        path = f"{out_path}/fixed_reconstruction/analysis_{recon}.png"
+        path = f"{out_path}/fixed_reconstruction/analysis_{recon}_{remove_luminal}.png"
         create_folder(path)
         plot_interaction_summary(
             interaction_summary,
