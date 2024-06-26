@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import LinearRegression
-
-# from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-# from sklearn.svm import SVC
-# from sklearn.model_selection import GridSearchCV, PredefinedSplit
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV, PredefinedSplit
+from sklearn.preprocessing import StandardScaler
+import json
 
 
 def get_feature_groups(feature_names):
@@ -246,3 +247,33 @@ def k_fold_split_by_patient(data, models, patient_names, k=5):
         folds[np.isin(patient_names, test_patients)] = i
 
     return train_Xs, train_ys, test_Xs, test_ys, folds
+
+
+def optimize_hyperparams(X, y, folds, grids, out_path=None):
+    cv = PredefinedSplit(folds)
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    new_params = {k: {} for k in grids.keys()}
+
+    for classifier in grids.keys():
+        if classifier == "rfc":
+            classifier_model = RandomForestClassifier(random_state=0)
+        elif classifier == "gbc":
+            classifier_model = GradientBoostingClassifier(random_state=0)
+        elif classifier == "svc":
+            classifier_model = SVC(degree=2, gamma=0.05, random_state=0)
+
+        classifier_model = GridSearchCV(
+            classifier_model, param_grid=grids[classifier], cv=cv, verbose=10
+        )
+
+        print(f"Fitting {classifier}")
+        classifier_model.fit(X, y)
+        print(f"Best parameters for {classifier}:")
+        for k in grids[classifier].keys():
+            print(f"{k}: {classifier_model.best_params_[k]}")
+            new_params[classifier][k] = classifier_model.best_params_[k]
+
+    if out_path is not None:
+        with open(out_path, "w") as f:
+            json.dump(new_params, f)

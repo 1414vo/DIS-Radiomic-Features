@@ -12,7 +12,7 @@ def single_feature_classification(
     train_X, train_y, val_X, val_y, config, out_path=None
 ):
     gbc = GradientBoostingClassifier(
-        learning_rate=config["gbc"]["lr"],
+        learning_rate=config["gbc"]["learning_rate"],
         n_estimators=config["gbc"]["n_estimators"],
         max_depth=config["gbc"]["max_depth"],
         random_state=0,
@@ -82,7 +82,7 @@ def reduced_feature_classification(
     train_Xs, train_ys, test_Xs, test_ys, config, out_path=None
 ):
     gbc = GradientBoostingClassifier(
-        learning_rate=config["gbc"]["lr"],
+        learning_rate=config["gbc"]["learning_rate"],
         n_estimators=config["gbc"]["n_estimators"],
         max_depth=config["gbc"]["max_depth"],
         random_state=0,
