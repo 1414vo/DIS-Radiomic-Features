@@ -38,7 +38,7 @@ if __name__ == "__main__":
     factor_names = ["Model", "GLbins", "Wavelength", "Reconstruction"]
     factor_data = data_filtered[factor_names]
     # Remove metadata
-    features = data_filtered.iloc[:, 27:-1]
+    features = data_filtered.iloc[:, 41:-1]
     # Generate colors
     colors = np.array(generate_colors(5, colorblind_friendly=True))
 

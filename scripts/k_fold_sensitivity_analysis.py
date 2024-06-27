@@ -4,6 +4,9 @@ from src.io import load_raw, create_folder
 import numpy as np
 import pandas as pd
 import argparse
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def sensitivity_summary(col_means: pd.Series, col_stds: pd.Series) -> None:
@@ -62,7 +65,7 @@ if __name__ == "__main__":
         data_filtered = data[data["PatientName"].isin(to_include)]
         factor_data = data_filtered[factor_names]
         # Remove metadata
-        features = data_filtered.iloc[:, 27:-1]
+        features = data_filtered.iloc[:, 41:-1]
 
         # Full analysis
         interactions = features.apply(
@@ -83,11 +86,13 @@ if __name__ == "__main__":
     stds.to_csv(f"{out_path}/std.csv")
 
     print("Skewness summary:")
+    print("-------------------")
     sensitivity_summary(
         means["original_firstorder_Skewness"], stds["original_firstorder_Skewness"]
     )
 
-    print("Kurtosis summary:")
+    print("\nKurtosis summary:")
+    print("-------------------")
     sensitivity_summary(
         means["original_firstorder_Kurtosis"], stds["original_firstorder_Kurtosis"]
     )
