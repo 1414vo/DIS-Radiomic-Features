@@ -42,7 +42,14 @@ def plot_interaction_summary(
                 factor, feature_groups[group]
             ].values
         # Plot group label and separation bar
-        plt.text(bar[0].get_corners()[0, 0] + 1, 1.02, group, fontsize=8)
+        # import pdb;pdb.set_trace()
+        plt.text(
+            (bar[0].get_corners()[0, 0] + bar[-1].get_corners()[1, 0]) / 2
+            - len(group) * 0.8,
+            1.02,
+            group,
+            fontsize=8,
+        )
         plt.bar(f"empty{group}", 0)
 
     plt.legend()

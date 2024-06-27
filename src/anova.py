@@ -3,7 +3,7 @@ import pandas as pd
 from itertools import combinations
 
 
-def manual_anova(data, factors, factor_names):
+def manual_anova(data, factors, factor_names, unbalanced=True):
     """
     Produces a per-factor ANalysis Of VAriance (ANOVA) for a 1D feature. Different factor interactions
     are also considered. The evaluation requires that the factor distributions are balanced,
@@ -55,13 +55,21 @@ def manual_anova(data, factors, factor_names):
                 int_factor_ind * max_classes ** np.arange(len(comb)), axis=1
             )
             unique_combs = np.unique(comb_indeces)
-            scaling = num_measurements // len(unique_combs)
-            means = np.array([])
-            for comb_idx in unique_combs:
-                means = np.append(means, np.mean(data[comb_indeces == comb_idx]))
+            if unbalanced:
+                comb_sse = 0
+                for comb_idx in unique_combs:
+                    mean = np.mean(data[comb_indeces == comb_idx])
+                    comb_sse += (
+                        np.sum(comb_indeces == comb_idx) * (mean - data_mean) ** 2
+                    )
+            else:
+                scaling = num_measurements // len(unique_combs)
+                means = np.array([])
+                for comb_idx in unique_combs:
+                    means = np.append(means, np.mean(data[comb_indeces == comb_idx]))
 
-            # Compute the total sse contribution (without removing lower-level interactions)
-            comb_sse = scaling * sum((means - data_mean) ** 2)
+                # Compute the total sse contribution (without removing lower-level interactions)
+                comb_sse = scaling * sum((means - data_mean) ** 2)
             register_factor_interaction_contribution(explained_sse, comb, comb_sse)
 
     return get_interaction_series(factor_names, explained_sse, sse)
