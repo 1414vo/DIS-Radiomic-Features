@@ -122,8 +122,12 @@ class NoVoxelsScaler(BaseEstimator):
     def fit(self, X, no_voxels):
         for i in range(X.shape[1]):
             X_col = X[:, i]
+            df = pd.DataFrame({"feature": X_col, "voxels": no_voxels})
+            X_mean = df.groupby("voxels")["feature"].mean().to_numpy()
+            X_err = df.groupby("voxels")["feature"].std().to_numpy()
+            voxels = df.groupby("voxels")["voxels"].mean().to_numpy()
             col_scaler = SingleNoVoxelsScaler(self.transform_options)
-            col_scaler.fit(X_col, no_voxels)
+            col_scaler.fit(X_mean, X_err, voxels)
             self.fits.append(col_scaler)
 
     def transform(self, X, no_voxels):
@@ -143,7 +147,7 @@ class NoVoxelsScaler(BaseEstimator):
 
 
 class SingleNoVoxelsScaler(BaseEstimator):
-    def __init__(self, transform_options):
+    def __init__(self, transform_options, weighted=True):
         super(SingleNoVoxelsScaler, self).__init__()
         for transform in transform_options:
             assert transform in [
@@ -158,8 +162,12 @@ class SingleNoVoxelsScaler(BaseEstimator):
             ], f"Unexpected transformation {transform} received."
         self.transform_options = transform_options
         self.model_fit = None
+        self.weighted = weighted
 
-    def _apply_transform(self, X, transform):
+    def __chisqr(self, obs, exp, err):
+        return np.sum((obs - exp) ** 2 / err**2)
+
+    def apply_transform(self, X, transform):
         if transform == "lin":
             return X
         elif transform == "sq":
@@ -179,20 +187,23 @@ class SingleNoVoxelsScaler(BaseEstimator):
         else:
             return X
 
-    def fit(self, X, no_voxels):
-        best_score = 0
+    def fit(self, X, X_err, no_voxels):
+        best_score = np.inf
         best_regressor = None
         best_regressor_transform = None
 
         for transform in self.transform_options:
             regressor = LinearRegression(fit_intercept=True)
-            transformed_voxels = self._apply_transform(no_voxels, transform).reshape(
+            transformed_voxels = self.apply_transform(no_voxels, transform).reshape(
                 -1, 1
             )
-            regressor.fit(transformed_voxels, X)
-
-            if regressor.score(transformed_voxels, X) > best_score:
-                best_score = regressor.score(transformed_voxels, X)
+            if self.weighted:
+                regressor.fit(transformed_voxels, X, sample_weight=1 / X_err)
+            else:
+                regressor.fit(transformed_voxels, X)
+            score = self.__chisqr(X, regressor.predict(transformed_voxels), X_err)
+            if score < best_score:
+                best_score = score
                 best_regressor = regressor
                 best_regressor_transform = transform
 
@@ -201,10 +212,10 @@ class SingleNoVoxelsScaler(BaseEstimator):
 
     def transform(self, X, no_voxels):
         p0 = self.model_fit.intercept_
-        return (X - p0) / self._apply_transform(no_voxels, self.model_transform)
+        return (X - p0) / self.apply_transform(no_voxels, self.model_transform)
 
-    def fit_transform(self, X, no_voxels):
-        self.fit(X, no_voxels)
+    def fit_transform(self, X, X_err, no_voxels):
+        self.fit(X, X_err, no_voxels)
         return self.transform(X, no_voxels)
 
 
