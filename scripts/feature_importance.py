@@ -1,3 +1,19 @@
+"""A script for determining the most discriminative features within a reduced feature set.
+
+Uses SHAP values for the GradientBoostingClassifier and , while using the Logistic Regression fit's coefficient
+absolute value to determine importance.
+
+Usage:
+
+.. code:: bash
+
+    $ python -m scripts.feature_importance <data_path> -o <output_path> --cfg <config_path> <--validation>
+
+- *data_path*: The location of the data.
+- *output_path*: Where to store the outputs.
+- *config_path*: The location of the classifier configuration files.
+- *validation*: An option on whether to perform this in a cross-validated manner.
+"""
 from src.classification import reduced_feature_classification
 from src.config_parser import parse_config
 from src.utils import k_fold_split_by_patient
@@ -27,6 +43,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = args.data_path
     out_path = args.output
+
+    # Load data files
     try:
         data = pd.read_csv(f"{data_path}/Reduced_features.csv")
         patient_names = pd.read_csv(
@@ -37,12 +55,14 @@ if __name__ == "__main__":
         print(f"Could not find the data in {data_path}.")
         exit(1)
 
+    # Load configurations
     try:
         config = parse_config(args.cfg)
     except FileNotFoundError:
         print(f"Could not find configuration file {args.cfg}.")
         exit(1)
 
+    # Split data
     if args.validation:
         train_Xs, train_ys, test_Xs, test_ys, _ = k_fold_split_by_patient(
             data, models, patient_names
