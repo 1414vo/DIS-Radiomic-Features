@@ -1,23 +1,25 @@
-"""!
-@file config_praser.py
-@brief Parses configuration files for model training/evaluation setup.
+"""
+Parses configuration files for model training/evaluation setup.
 
-
-@author Ivo Petrov
-@date 06/04/2024
-@details Parses configuration files for model training/evaluation setup.
 This module offers functionality to parse .json configuration files, converting them into
 a Python dictionary for easy access and manipulation within a training or evaluation script.
-
 """
 import json
 
 
-def parse_config(cfg_path: str):
-    """! Parses a .json configuration file for the use of setting up the training/evaluation script.
+def parse_config(cfg_path: str) -> dict:
+    """Parses a .json configuration file for the use of setting up the training/evaluation script.
 
-    @param cfg_path The location of the config file. If None, will use a default configuration.
-    @returns        A dictionary containing the default configuration parameters."""
+    Parameters
+    ----------
+    cfg_path: str or None
+        The location of the config file. If None, will use a default configuration.
+
+    Returns
+    -------
+    dict[str, dict[str, float]]
+        A dictionary containing the default configuration parameters.
+    """
 
     # Extract configuration
     cfg = {}
