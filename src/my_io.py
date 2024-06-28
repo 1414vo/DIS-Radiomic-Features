@@ -1,3 +1,7 @@
+"""Module for custom input/output operations.
+
+Contains utilities for loading the raw data and writing to non-existing folders.
+"""
 import os
 from pathlib import Path
 import pandas as pd
@@ -14,7 +18,8 @@ def load_raw(path: str) -> pd.DataFrame:
 
     Returns
     -------
-    A concatenated DataFrame containing all factors and all the raw data.
+    pd.DataFrame
+        A concatenated DataFrame containing all factors and all the raw data.
     """
     df_list = []
     for f_name in os.listdir(path):
