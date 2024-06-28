@@ -1,3 +1,15 @@
+""" A script for applying the VOI feature normalization.
+
+Usage:
+
+.. code:: bash
+
+    $ python -m scripts.normalize_features <data_path> -o <output_path>
+
+- *data_path*: The location of the data.
+- *output_path*: Where to store the relevant outputs.
+
+"""
 from src.my_io import load_raw
 from src.utils import NoVoxelsScaler
 import numpy as np
@@ -32,7 +44,10 @@ if __name__ == "__main__":
     seeds = np.random.randint(0, int(2**32 - 1), size=5)
     no_voxels = data["diagnostics_Mask-original_VoxelNum"]
     patient_names = data["PatientName"]
+
+    # Cut off all metadata + shape features
     data = data.iloc[:, 41:-1]
+
     print(data.columns)
     scaler = NoVoxelsScaler(
         transform_options=[
