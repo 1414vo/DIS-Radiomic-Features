@@ -1,3 +1,17 @@
+""" Computes the lone discriminative power of each feature using Gradient Boosting,
+Random Forest, and Support Vector Machine classifiers.
+
+Usage:
+
+.. code:: bash
+
+    $ python -m scripts.single_feature_scores <data_path> -o <output_path> --cfg <config_path> <--validation>
+
+- *data_path*: The location of the data.
+- *output_path*: Where to store the outputs.
+- *config_path*: The location of the classifier configuration files.
+- *validation*: An option on whether to perform this in a cross-validated manner.
+"""
 from src.classification import single_feature_classification
 from src.config_parser import parse_config
 import numpy as np
