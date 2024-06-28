@@ -1,9 +1,18 @@
+"""Module containing utilities for multi-factor ANOVA."""
+
+from typing import List
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from itertools import combinations
 
 
-def manual_anova(data, factors, factor_names, unbalanced=True):
+def manual_anova(
+    data: NDArray[np.float64],
+    factors: NDArray[np.float64],
+    factor_names: List,
+    unbalanced: bool = True,
+) -> pd.Series:
     """
     Produces a per-factor ANalysis Of VAriance (ANOVA) for a 1D feature. Different factor interactions
     are also considered. The evaluation requires that the factor distributions are balanced,
@@ -23,11 +32,14 @@ def manual_anova(data, factors, factor_names, unbalanced=True):
         A set of k factors. Each factor should be balanced (have the same number of entries per unique value).
     factor_names: list[str]
         The names of the factors - used to construct a final Pandas Series
+    unbalanced: bool
+        Whether to perform an unbalanced analysis.
 
     Returns
     -------
-    A Pandas Series (pd.Series) object, containing the contribution of each interaction in terms
-    of sensitivity.
+    pd.Series
+        A Pandas Series object, containing the contribution of each interaction in terms \
+            of sensitivity.
     """
     num_measurements = len(data)
     num_factors = len(factors)
@@ -75,7 +87,9 @@ def manual_anova(data, factors, factor_names, unbalanced=True):
     return get_interaction_series(factor_names, explained_sse, sse)
 
 
-def register_factor_interaction_contribution(explained_sse, comb, comb_sse):
+def register_factor_interaction_contribution(
+    explained_sse: dict, comb: list, comb_sse: float
+):
     """
     Compute the sensitivity for a combination of factors given pre-computed SSE contributions.
     Updates the provided explained_sse dictionary in place.
@@ -104,7 +118,7 @@ def register_factor_interaction_contribution(explained_sse, comb, comb_sse):
         explained_sse[len(comb)][comb] = comb_sse - ss_to_remove
 
 
-def get_interaction_series(factor_names, explained_sse, total_sse):
+def get_interaction_series(factor_names: list, explained_sse: dict, total_sse: float):
     """
     Produces a Pandas Series from the extracted Sum of Squared Errors (SSE) showing the factor sensitivity.
     Sensitivity is measured as the fraction explained compared to the total SSE.
@@ -120,8 +134,9 @@ def get_interaction_series(factor_names, explained_sse, total_sse):
 
     Returns
     -------
-    A Pandas Series (pd.Series) object, containing the contribution of each interaction in terms
-    of sensitivity.
+    pd.Series
+        A Pandas Series (pd.Series) object, containing the contribution of each interaction in terms\
+        of sensitivity.
     """
     interaction_dict = {}
 

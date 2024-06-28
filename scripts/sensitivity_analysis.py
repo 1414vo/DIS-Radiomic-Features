@@ -1,3 +1,17 @@
+""" A script for performing sensitivity analysis using balanced ANOVA.
+
+Further performs the analysis with standardize Gray level bins, and reconstruction method.
+
+Usage:
+
+.. code:: bash
+
+    $ python -m scripts.sensitivity_analysis <data_path> -o <output_path> <--remove_luminal>
+
+- *data_path*: The location of the data.
+- *output_path*: Where to store the relevant outputs.
+- *remove_luminal*: Whether to remove a luminal sample (balanced vs unbalanced ANOVA)
+"""
 from src.anova import manual_anova
 from src.utils import extract_factor_summary, generate_colors
 from src.my_io import load_raw, create_folder
@@ -21,6 +35,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = args.data_path
     out_path = args.output
+
+    # Load raw data
     try:
         data = load_raw(data_path)
     except FileNotFoundError:
@@ -37,8 +53,10 @@ if __name__ == "__main__":
         data_filtered = data.copy()
     factor_names = ["Model", "GLbins", "Wavelength", "Reconstruction"]
     factor_data = data_filtered[factor_names]
+
     # Remove metadata
     features = data_filtered.iloc[:, 41:-1]
+
     # Generate colors
     colors = np.array(generate_colors(5, colorblind_friendly=True))
 

@@ -1,3 +1,14 @@
+""" A script for performing k-fold sensitivity analysis using balanced ANOVA.
+
+Usage:
+
+.. code:: bash
+
+    $ python -m scripts.k_fold_sensitivity_analysis <data_path> -o <output_path>
+
+- *data_path*: The location of the data.
+- *output_path*: Where to store the relevant outputs.
+"""
 from src.anova import manual_anova
 from src.utils import extract_factor_summary
 from src.my_io import load_raw, create_folder
@@ -41,6 +52,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     data_path = args.data_path
     out_path = args.output
+
+    # Load raw data
     try:
         data = load_raw(data_path)
     except FileNotFoundError:
@@ -58,10 +71,13 @@ if __name__ == "__main__":
 
     for i in range(5):
         np.random.seed(seeds[i])
+
         # Select which patients to use
         selected_lum = set(np.random.choice(luminal_ids, size=8, replace=False))
         selected_bas = set(np.random.choice(basal_ids, size=8, replace=False))
+
         to_include = selected_lum.union(selected_bas)
+
         data_filtered = data[data["PatientName"].isin(to_include)]
         factor_data = data_filtered[factor_names]
         # Remove metadata
@@ -78,10 +94,12 @@ if __name__ == "__main__":
     # Concatenate results
     sensitivity_df = pd.concat(sensitivities, axis=1)
 
+    # Compute the mean sensitivity value for each feature-factor pair
     means = sensitivity_df.groupby(axis=1, level=0).mean()
     create_folder(f"{out_path}/means.csv")
     means.to_csv(f"{out_path}/means.csv")
 
+    # Compute the standard deviation of the sensitivity value for each feature-factor pair
     stds = sensitivity_df.groupby(axis=1, level=0).std()
     stds.to_csv(f"{out_path}/std.csv")
 
