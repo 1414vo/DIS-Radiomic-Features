@@ -1,3 +1,10 @@
+"""Utilities for classification using a single or many features.
+
+This module contains utilities for evaluating invidiual feature scores under different models,
+as well as for providing explanations when evaluating on a reduced feature set. The latter includes
+SHAP values for tree-based models, as well as a coefficient plot for the Logistic Regression.
+"""
+
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
@@ -6,11 +13,47 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import shap
 import numpy as np
+from numpy.typing import NDArray
+from typing import List
 
 
 def single_feature_classification(
-    train_X, train_y, val_X, val_y, config, out_path=None
-):
+    train_X: NDArray[np.float64],
+    train_y: NDArray[np.float64],
+    val_X: NDArray[np.float64],
+    val_y: NDArray[np.float64],
+    config: dict,
+    out_path: str = None,
+) -> pd.DataFrame:
+    """
+    Computes the classification accuracy for individual features across a Gradient Boosting Classifier,
+    Random Forest and Support Vector Machine
+
+    Parameters
+    ----------
+    train_X: NDArray[np.float64]
+        The features to train the models on.
+
+    train_y: NDArray[np.float64]
+        The ground truth models for the training set.
+
+    val_X: NDArray[np.float64]
+        The features to evaluate the models on.
+
+    val_y: NDArray[np.float64]
+        The ground truth models for the test set.
+
+    config: dict[str, dict[str, float]]
+        A configuration dictionary for the classifier models.
+
+    out_path: str
+        A file path where to store the immediate result.
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing the scores for each individual feature.
+    """
     gbc = GradientBoostingClassifier(
         learning_rate=config["gbc"]["learning_rate"],
         n_estimators=config["gbc"]["n_estimators"],
@@ -79,8 +122,37 @@ def single_feature_classification(
 
 
 def reduced_feature_classification(
-    train_Xs, train_ys, test_Xs, test_ys, config, out_path=None
+    train_Xs: List[NDArray[np.float64]],
+    train_ys: List[NDArray[np.float64]],
+    test_Xs: List[NDArray[np.float64]],
+    test_ys: List[NDArray[np.float64]],
+    config,
+    out_path: str = None,
 ):
+    """
+    Computes the classification accuracy for individual features across a Gradient Boosting Classifier,
+    Random Forest and Support Vector Machine
+
+    Parameters
+    ----------
+    train_Xs: List[NDArray[np.float64]]
+        The features to train the models on.
+
+    train_ys: List[NDArray[np.float64]]
+        The ground truth models for the training set.
+
+    val_Xs: List[NDArray[np.float64]]
+        The features to evaluate the models on.
+
+    val_ys: List[NDArray[np.float64]]
+        The ground truth models for the test set.
+
+    config: dict[str, dict[str, float]]
+        A configuration dictionary for the classifier models.
+
+    out_path: str
+        A file path where to store the immediate result.
+    """
     gbc = GradientBoostingClassifier(
         learning_rate=config["gbc"]["learning_rate"],
         n_estimators=config["gbc"]["n_estimators"],
@@ -108,14 +180,17 @@ def reduced_feature_classification(
                 test_Xs[i],
                 test_ys[i],
             )
+            # Scale features
             scaler = StandardScaler()
             train_X[train_X.columns] = scaler.fit_transform(train_X)
             test_X[test_X.columns] = scaler.transform(test_X)
             classifier.fit(train_X, train_y)
 
+            # Accumulate scores
             train_acc += classifier.score(train_X, train_y) / len(train_Xs)
             test_acc += classifier.score(test_X, test_y) / len(train_Xs)
 
+            # Generate explanations for tree-based model
             if name in ["Gradient Boosting", "Random Forest"]:
                 explainer = shap.TreeExplainer(classifier)
                 explanation = explainer(test_X)
@@ -127,12 +202,15 @@ def reduced_feature_classification(
                 base_values.append(explainer.expected_value)
 
             else:
+                # Logistic regression coefficient plot
                 plot_logistic_regression_coef(
                     classifier, train_X, out_path=f"{out_path}_{name}.png"
                 )
                 print(f"{name} train accuracy: {classifier.score(train_X, train_y)}")
                 print(f"{name} test accuracy: {classifier.score(test_X, test_y)}")
                 return
+
+        # Combine explanations and plot
         shap_values = np.vstack(shap_value_list)
         base_value = np.mean(base_values)
         test_X = np.vstack([test_X.values for test_X in test_Xs])
