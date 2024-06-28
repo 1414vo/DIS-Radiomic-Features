@@ -10,11 +10,23 @@ Usage:
 - *output_path*: Where to store the relevant outputs.
 
 """
-from src.my_io import load_raw
+from src.my_io import load_raw, create_folder
 from src.utils import NoVoxelsScaler
 import numpy as np
 import pandas as pd
 import argparse
+
+
+def _rename_features(feature_name: str) -> str:
+    feature_words = feature_name.split("_")
+    feature_group = feature_words[1]
+
+    if feature_group == "firstorder":
+        feature_group = "FO"
+    else:
+        feature_group = feature_group.upper()
+
+    return feature_group + " " + feature_words[2]
 
 
 if __name__ == "__main__":
@@ -27,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o",
         "--output",
-        default="./data",
+        default="./data/voi_norm",
         help="Where to store the normalized features.",
     )
     args = parser.parse_args()
@@ -44,11 +56,11 @@ if __name__ == "__main__":
     seeds = np.random.randint(0, int(2**32 - 1), size=5)
     no_voxels = data["diagnostics_Mask-original_VoxelNum"]
     patient_names = data["PatientName"]
+    model = data["Model"]
 
     # Cut off all metadata + shape features
     data = data.iloc[:, 41:-1]
 
-    print(data.columns)
     scaler = NoVoxelsScaler(
         transform_options=[
             "lin",
@@ -67,4 +79,17 @@ if __name__ == "__main__":
         print(f"{col}: {scaler.fits[i].model_transform}")
     rescaled_data = pd.DataFrame(rescaled_data, index=data.index, columns=data.columns)
     rescaled_data["PatientName"] = patient_names
-    rescaled_data.to_csv(f"{out_path}/normalized_features.csv")
+
+    rescaled_data.columns = [
+        _rename_features(col) for col in rescaled_data.columns[:-1]
+    ] + ["PatientName"]
+
+    # Reorder columns
+    cols = rescaled_data.columns.to_list()
+    rescaled_data = rescaled_data[cols[-1:] + cols[:-1]]
+
+    create_folder(f"{out_path}/All_model.csv")
+    model.to_csv(f"{out_path}/All_model.csv", index=False)
+    rescaled_data.to_csv(
+        f"{out_path}/All_features_corrected_final_patient.csv", index=False
+    )
