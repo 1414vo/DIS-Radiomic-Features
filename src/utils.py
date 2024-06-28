@@ -1,6 +1,13 @@
 import colorsys
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV, PredefinedSplit
+from sklearn.preprocessing import StandardScaler
+import json
 
 
 def get_feature_groups(feature_names):
@@ -93,3 +100,180 @@ def extract_factor_summary(data, factor_names):
 
     # Normalize and return
     return new_col / new_col.sum()
+
+
+class NoVoxelsScaler(BaseEstimator):
+    def __init__(self, transform_options):
+        super(NoVoxelsScaler, self).__init__()
+        for transform in transform_options:
+            assert transform in [
+                "lin",
+                "sq",
+                "cub",
+                "inv",
+                "inv_sq",
+                "inv_cub",
+                "log",
+                "inv_log",
+            ], f"Unexpected transformation {transform} received."
+        self.transform_options = transform_options
+        self.fits = []
+
+    def fit(self, X, no_voxels):
+        for i in range(X.shape[1]):
+            X_col = X[:, i]
+            col_scaler = SingleNoVoxelsScaler(self.transform_options)
+            col_scaler.fit(X_col, no_voxels)
+            self.fits.append(col_scaler)
+
+    def transform(self, X, no_voxels):
+        assert X.shape[1] == len(
+            self.fits
+        ), f"Number of columns different from fit ({len(self.fits)})"
+        X_norm = np.zeros_like(X)
+        for i in range(X.shape[1]):
+            X_col = X[:, i]
+            X_norm[:, i] = self.fits[i].transform(X_col, no_voxels)
+
+        return X_norm
+
+    def fit_transform(self, X, no_voxels):
+        self.fit(X, no_voxels)
+        return self.transform(X, no_voxels)
+
+
+class SingleNoVoxelsScaler(BaseEstimator):
+    def __init__(self, transform_options):
+        super(SingleNoVoxelsScaler, self).__init__()
+        for transform in transform_options:
+            assert transform in [
+                "lin",
+                "sq",
+                "cub",
+                "inv",
+                "inv_sq",
+                "inv_cub",
+                "log",
+                "inv_log",
+            ], f"Unexpected transformation {transform} received."
+        self.transform_options = transform_options
+        self.model_fit = None
+
+    def _apply_transform(self, X, transform):
+        if transform == "lin":
+            return X
+        elif transform == "sq":
+            return X**2
+        elif transform == "cub":
+            return X**3
+        elif transform == "inv":
+            return 1 / X
+        elif transform == "inv_sq":
+            return 1 / X**2
+        elif transform == "inv_cub":
+            return 1 / X**3
+        elif transform == "log":
+            return np.log(X)
+        elif transform == "inv_log":
+            return 1 / np.log(X)
+        else:
+            return X
+
+    def fit(self, X, no_voxels):
+        best_score = 0
+        best_regressor = None
+        best_regressor_transform = None
+
+        for transform in self.transform_options:
+            regressor = LinearRegression(fit_intercept=True)
+            transformed_voxels = self._apply_transform(no_voxels, transform).reshape(
+                -1, 1
+            )
+            regressor.fit(transformed_voxels, X)
+
+            if regressor.score(transformed_voxels, X) > best_score:
+                best_score = regressor.score(transformed_voxels, X)
+                best_regressor = regressor
+                best_regressor_transform = transform
+
+        self.model_fit = best_regressor
+        self.model_transform = best_regressor_transform
+
+    def transform(self, X, no_voxels):
+        p0 = self.model_fit.intercept_
+        return (X - p0) / self._apply_transform(no_voxels, self.model_transform)
+
+    def fit_transform(self, X, no_voxels):
+        self.fit(X, no_voxels)
+        return self.transform(X, no_voxels)
+
+
+def k_fold_split_by_patient(data, models, patient_names, k=5):
+    # Generate seeds for random selection
+    np.random.seed(0)
+
+    basal_patients = np.unique(patient_names[models == "basal"])
+    luminal_patients = np.unique(patient_names[models == "luminal"])
+
+    assert (
+        len(basal_patients) > k
+    ), f"Data should contain at least k={k} patients from the basal model"
+
+    assert (
+        len(luminal_patients) > k
+    ), f"Data should contain at least k={k} patients from the basal model"
+
+    test_len = min(len(basal_patients) // k, len(luminal_patients) // k)
+    np.random.shuffle(basal_patients)
+    np.random.shuffle(luminal_patients)
+
+    train_Xs = []
+    train_ys = []
+    test_Xs = []
+    test_ys = []
+    folds = -np.ones(len(models))
+
+    for i in range(k):
+        test_patients = np.concatenate(
+            (
+                basal_patients[i * test_len : (i + 1) * test_len],
+                luminal_patients[i * test_len : (i + 1) * test_len],
+            )
+        )
+        train_Xs.append(data[~np.isin(patient_names, test_patients)].copy())
+        test_Xs.append(data[np.isin(patient_names, test_patients)].copy())
+        train_ys.append(models[~np.isin(patient_names, test_patients)].copy())
+        test_ys.append(models[np.isin(patient_names, test_patients)].copy())
+        folds[np.isin(patient_names, test_patients)] = i
+
+    return train_Xs, train_ys, test_Xs, test_ys, folds
+
+
+def optimize_hyperparams(X, y, folds, grids, out_path=None):
+    cv = PredefinedSplit(folds)
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    new_params = {k: {} for k in grids.keys()}
+
+    for classifier in grids.keys():
+        if classifier == "rfc":
+            classifier_model = RandomForestClassifier(random_state=0)
+        elif classifier == "gbc":
+            classifier_model = GradientBoostingClassifier(random_state=0)
+        elif classifier == "svc":
+            classifier_model = SVC(degree=2, gamma=0.05, random_state=0)
+
+        classifier_model = GridSearchCV(
+            classifier_model, param_grid=grids[classifier], cv=cv, verbose=10
+        )
+
+        print(f"Fitting {classifier}")
+        classifier_model.fit(X, y)
+        print(f"Best parameters for {classifier}:")
+        for k in grids[classifier].keys():
+            print(f"{k}: {classifier_model.best_params_[k]}")
+            new_params[classifier][k] = classifier_model.best_params_[k]
+
+    if out_path is not None:
+        with open(out_path, "w") as f:
+            json.dump(new_params, f)
