@@ -8,18 +8,20 @@ Usage:
 .. code:: bash
 
     $ python -m scripts.feature_importance <data_path> -o <output_path> --cfg <config_path> \
-        --scores <scores> --method <method>
+        --scores <scores> --method <method> --corr_thr <corr_threshold>
 
 - *data_path*: The location of the data.
 - *output_path*: Where to store the outputs.
 - *config_path*: The location of the classifier configuration files.
 - *scores*: Where the individual feature scores are found.
-- *method*: Which method to use for the initial feature reduction. Supports 'kw' (Kruskal-Wallist), \
+- *method*: Which method to use for the initial feature reduction. Supports 'kw' (Kruskal-Wallis), \
     'ks' (Kolmogorov-Smirnov), 'fs' (Forward selection)
+- *corr_threshold*: Above what correlation value the features can be considered highly correlated.
 """
 
 from src.feature_reduction import compute_all_correlations, reduce_features
 from src.config_parser import parse_config
+from src.my_io import create_folder
 import numpy as np
 import pandas as pd
 import argparse
@@ -57,6 +59,12 @@ if __name__ == "__main__":
         help="Method for the feature reduction. Supports Kruskal-Wallis (kw), "
         + "Kolmogorov-Smirnov (ks), and Forward Selection (fs)",
     )
+    parser.add_argument(
+        "--corr_thr",
+        default=0.9,
+        type=float,
+        help="Above what correlation value the features can be considered highly correlated.",
+    )
     args = parser.parse_args()
     data_path = args.data_path
     out_path = args.output
@@ -78,16 +86,27 @@ if __name__ == "__main__":
     # Generate seeds for random selection
     np.random.seed(0)
 
+    # Save data in new folder
+    create_folder(f"{args.output}_{args.method}/All_model.csv")
+    data.to_csv(
+        f"{args.output}_{args.method}/All_features_corrected_final_patient.csv",
+        index=False,
+    )
+    models.to_csv(f"{args.output}_{args.method}/All_model.csv", index=False)
+
     reduce_features(
         data,
         models,
         feature_scores,
         benjamini_alpha=0.25,
-        out_path=args.output,
+        corr_threshold=args.corr_thr,
+        out_path=f"{args.output}_{args.method}",
         method=args.method,
         config=config,
     )
 
     # Compute all correlations for main contribution
     if args.method == "kw":
-        compute_all_correlations(data, out_path=f"{args.output}/corrs.png")
+        compute_all_correlations(
+            data, out_path=f"{args.output}_{args.method}/corrs.png"
+        )
