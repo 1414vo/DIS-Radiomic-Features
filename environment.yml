@@ -3,12 +3,13 @@ channels:
   - conda-forge
 dependencies:
   - python==3.9.18
-  - conda==23.10.0
+  - conda==24.5.0
   - setuptools
   - pip
   - wheel
   - conda-content-trust
   - conda-libmamba-solver
+  - doxygen
   - matplotlib
   - numpy
   - pandas
@@ -16,4 +17,10 @@ dependencies:
   - pytest
   - scikit-learn
   - scipy
+  - ipykernel
+  - pingouin
+  - shap
+  - tqdm
+  - sphinx
+  - myst-parser
 prefix: /opt/conda
