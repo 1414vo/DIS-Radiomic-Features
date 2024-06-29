@@ -80,8 +80,9 @@ if __name__ == "__main__":
     else:
         train_X = data
         test_X = data
-        train_y = models
-        test_y = models
+        train_y = models.values.flatten()
+        test_y = models.values.flatten()
+
     single_feature_classification(
         train_X=train_X,
         train_y=train_y,

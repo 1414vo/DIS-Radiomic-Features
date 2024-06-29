@@ -113,7 +113,7 @@ def reduce_features(
     reduced_features = features[["PatientName"] + reduced_feature_names]
 
     if out_path is not None:
-        out_path_rm_corr = f"{out_path}/Reduced_features_{method}.csv"
+        out_path_rm_corr = f"{out_path}/Reduced_features.csv"
     else:
         out_path_rm_corr = None
 

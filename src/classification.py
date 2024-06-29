@@ -66,7 +66,7 @@ def single_feature_classification(
         random_state=0,
     )
     svc = SVC(
-        C=config["svc"]["c"],
+        C=config["svc"]["C"],
         kernel=config["svc"]["kernel"],
         degree=2,
         gamma=0.05,
@@ -83,6 +83,7 @@ def single_feature_classification(
         "Overall Score (Val)": [],
     }
     for f in train_X.columns:
+        print(f"Feature {f}")
         # Fit models
         svc.fit(train_X[[f]], train_y)
         rfc.fit(train_X[[f]], train_y)
