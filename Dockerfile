@@ -5,7 +5,7 @@ WORKDIR ./ivp24
 COPY . .
 
 RUN apt-get update && apt-get install -y \
-    git vim unzip gcc pkg-config g++ texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
+    git vim unzip g++ texlive texlive-latex-extra texlive-fonts-recommended dvipng cm-super
 
 RUN conda env update --file environment.yml --name base
 RUN pip install sphinx-rtd-theme
