@@ -10,6 +10,7 @@ from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from .plotting import plot_logistic_regression_coef, plot_explanation
 from sklearn.preprocessing import StandardScaler
+from src.my_io import create_folder
 import pandas as pd
 import shap
 import numpy as np
@@ -203,9 +204,10 @@ def reduced_feature_classification(
                 base_values.append(explainer.expected_value)
 
             else:
+                create_folder(f"{out_path}/{name}.png")
                 # Logistic regression coefficient plot
                 plot_logistic_regression_coef(
-                    classifier, train_X, out_path=f"{out_path}_{name}.png"
+                    classifier, train_X, out_path=f"{out_path}/{name}.png"
                 )
                 print(f"{name} train accuracy: {classifier.score(train_X, train_y)}")
                 print(f"{name} test accuracy: {classifier.score(test_X, test_y)}")
@@ -219,10 +221,11 @@ def reduced_feature_classification(
         print(f"{name} train accuracy: {train_acc}")
         print(f"{name} test accuracy: {test_acc}")
 
+        create_folder(f"{out_path}/{name}.png")
         plot_explanation(
             shap_values,
             test_X,
             base_value,
             train_Xs[0].columns,
-            out_path=f"{out_path}_{name}.png",
+            out_path=f"{out_path}/{name}.png",
         )

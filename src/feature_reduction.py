@@ -111,6 +111,7 @@ def reduce_features(
 
     # Perform first step of reduction
     reduced_features = features[["PatientName"] + reduced_feature_names]
+    reduced_features = reduced_features[sorted(reduced_features.columns)]
 
     if out_path is not None:
         out_path_rm_corr = f"{out_path}/Reduced_features.csv"
@@ -126,6 +127,21 @@ def reduce_features(
         out_path=out_path_rm_corr,
     )
 
+    print("Remaining features:")
+    print("-------------------")
+
+    curr_group = "FO"
+    acc = "FO "
+    for feature in reduced_features.columns:
+        group = feature.split(" ")[0]
+        if group != curr_group:
+            print(acc)
+            acc = feature + ", "
+            curr_group = group
+        else:
+            acc += " ".join(feature.split(" ")[1:]) + ", "
+
+    print(acc)
     return reduced_features
 
 
@@ -204,7 +220,7 @@ def reduce_features_statistical(
             }
         )
         df.set_index("Feature Name")
-        df.to_csv(out_path)
+        df.to_csv(out_path, index=False)
 
     # Return every sample where the adjusted rank is higher than the p-value
     last_viable = np.argmin(q_r > sorted_p_vals)
@@ -244,9 +260,14 @@ def reduce_features_rm_corr(
     norm_features = features.apply(lambda x: x / x.std(), axis=0)
 
     for i, f1 in enumerate(list(norm_features.columns)):
-        for f2 in list(norm_features.columns)[i + 1 :]:
+        for j, f2 in enumerate(list(norm_features.columns)):
             # Ignore patient name column or already removed columns
-            if f1 == "PatientName" or f2 == "PatientName" or f1 in removed_features:
+            if (
+                f1 == "PatientName"
+                or f2 == "PatientName"
+                or f1 in removed_features
+                or f1 == f2
+            ):
                 continue
 
             # Calculate RMCorr measure
@@ -256,15 +277,12 @@ def reduce_features_rm_corr(
 
             # Remove based on individual scores if threshold is met
             if rm_corr > corr_threshold:
-                if (
-                    feature_scores.loc[f1, "Overall Score (Train)"]
-                    > feature_scores.loc[f2, "Overall Score (Train)"]
-                ):
-                    removed_features.add(f2)
-                    print(f"Removed feature {f2}")
-                else:
+                score_1 = feature_scores.loc[f1, "Overall Score (Train)"]
+                score_2 = feature_scores.loc[f2, "Overall Score (Train)"]
+                if (score_1 < score_2) or (score_1 == score_2 and i < j):
                     removed_features.add(f1)
-                    print(f"Removed feature {f1}")
+                    print(f"Removed feature {f1} (highly correlated with {f2})")
+
     reduced_features = features.drop(columns=list(removed_features) + ["PatientName"])
 
     if out_path is not None:

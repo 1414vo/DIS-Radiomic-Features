@@ -25,7 +25,9 @@ from src.my_io import create_folder
 import numpy as np
 import pandas as pd
 import argparse
+import warnings
 
+warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
