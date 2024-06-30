@@ -12,10 +12,11 @@ RUN pip install sphinx-rtd-theme
 
 # Copy relevant data
 RUN mkdir ./data ; mkdir ./data/raw; cd ./data
-RUN wget https://github.com/loressa/Photoacoustic_radiomics_xenografts
+RUN git clone https://github.com/loressa/Photoacoustic_radiomics_xenografts
 RUN cp ./Photoacoustic_radiomics_xenografts/All_* ./
-RUN unzip ./Photoacoustic_radiomics_xenografts/ModelsUncorrected.zip -d ./data/raw
+RUN unzip ./Photoacoustic_radiomics_xenografts/ModelsUncorrected.zip -d ./raw
 RUN rm -rf ./Photoacoustic_radiomics_xenografts/
+RUN cd ..
 
 RUN pre-commit install
 
