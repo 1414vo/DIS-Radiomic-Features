@@ -137,7 +137,7 @@ Before proceeding to determining the feature importance, the next step's ablatio
 ### Feature importance
 Finally, after performing the feature reduction, we can apply the feature importance step using:
 
-```python -m scripts.feature_importance <data_path> -o <out_path> --cfg <config_path>``
+```python -m scripts.feature_importance <data_path> -o <out_path> --cfg <config_path>```
 
 ,where `config_path` can take the default configurations or the optimised ones. We can enable cross-validation through the `--validation` tag:
 
